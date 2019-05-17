@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <windows.h>
 #include <commctrl.h> // datetimepicker
+#include <ShlObj.h>
 
 #include <malloc.h>
 #include <time.h>
@@ -35,15 +36,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <win2k.h>
 #include <newpluginapi.h>
 #include <m_langpack.h>
-#include <m_system.h>
-#include <m_database.h>
-#include <m_protosvc.h>
-#include <m_icolib.h>
 #include <m_clist.h>
 #include <m_db_int.h>
-#include <m_metacontacts.h>
-#include <m_import.h>
+#include <m_database.h>
 #include <m_gui.h>
+#include <m_icolib.h>
+#include <m_import.h>
+#include <m_metacontacts.h>
+#include <m_netlib.h>
+#include <m_protosvc.h>
+
+#include "../../../libs/Pcre16/src/pcre.h"
 
 #include "version.h"
 #include "resource.h"
@@ -59,8 +62,42 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_IMPORT_SERVICE "MIMImport/Import"        // Service for main menu item
 #define MS_IMPORT_CONTACT "MIMImport/ImportContact" // Service for contact menu item
 
+struct CImportPattern : public MZeroedObject
+{
+	struct CRegexp
+	{
+		pcre16 *pattern;
+		pcre16_extra *extra;
+	};
+
+	CMStringW wszName, wszExt;
+	int iType = 1;
+	int iCodePage = CP_UTF8;
+	int iUseHeader, iUsePreMsg, iUseFilename;
+
+	CRegexp regMessage;
+	CMStringW wszIncoming, wszOutgoing;
+	int iDirection, iDay, iMonth, iYear, iHours, iMinutes, iSeconds;
+
+	CRegexp regFilename;
+	int iInNick, iInUID, iOutNick, iOutUID;
+
+	// symbols pre & after a messages
+	int preRN, afterRN, preSP, afterSP;
+};
+
 struct CMPlugin : public PLUGIN<CMPlugin>
 {
+private:
+	friend class CMirandaPageDlg;
+	friend class CContactImportDlg;
+
+	void LoadPattern(const wchar_t *pwszFileName);
+	void LoadPatterns();
+
+	OBJLIST<CImportPattern> m_patterns;
+
+public:
 	CMPlugin();
 
 	int Load() override;
@@ -125,10 +162,10 @@ public:
 
 class CMirandaPageDlg : public CWizardPageDlg
 {
-	void SearchForLists(const wchar_t *mirandaPath, const wchar_t *mirandaProf);
-
-	CCtrlButton btnBack, btnOther;
+	CCtrlButton btnBack, btnOther, btnPath;
 	CCtrlListBox m_list;
+	CCtrlCombo m_cmbFileType;
+	int m_iFileType = -1;
 
 public:
 	CMirandaPageDlg();
@@ -139,9 +176,10 @@ public:
 	void OnNext() override;
 	
 	void onClick_Back(CCtrlButton*);
+	void onClick_Path(CCtrlButton*);
 	void onClick_Other(CCtrlButton*);
 
-	void onSelChanged_list(CCtrlListBox*);
+	void onChange_Pattern(CCtrlCombo*);
 };
 
 class CMirandaOptionsPageDlg : public CWizardPageDlg
@@ -190,40 +228,96 @@ public:
 	void OnCancel() override;
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////
+
+struct AccountMap
+{
+	AccountMap(const char *_src, int _origIdx, const wchar_t *_srcName) :
+		szSrcAcc(mir_strdup(_src)),
+		iSrcIndex(_origIdx),
+		tszSrcName(mir_wstrdup(_srcName))
+	{
+	}
+
+	ptrA szSrcAcc, szBaseProto;
+	ptrW tszSrcName;
+	int iSrcIndex;
+	int iOrder = 0;
+	PROTOACCOUNT *pa = nullptr;
+};
+
+struct ContactMap
+{
+	ContactMap(MCONTACT _src, MCONTACT _dst) :
+		srcID(_src),
+		dstID(_dst)
+	{
+	}
+
+	MCONTACT srcID, dstID;
+};
+
+class CImportBatch : public MZeroedObject
+{
+	OBJLIST<AccountMap> m_accounts;
+	OBJLIST<ContactMap> m_contacts;
+	LIST<DBCachedContact> m_metas;
+
+	DWORD nDupes, nContactsCount, nMessagesCount, nGroupsCount, nSkippedEvents, nSkippedContacts;
+	MDatabaseCommon *srcDb, *dstDb;
+
+	bool     ImportAccounts(OBJLIST<char> &arSkippedModules);
+	MCONTACT ImportContact(MCONTACT hSrc);
+	void     ImportHistory(MCONTACT hContact, PROTOACCOUNT **protocol, int protoCount);
+	int      ImportGroups();
+	void     ImportMeta(DBCachedContact *ccSrc);
+
+	MCONTACT MapContact(MCONTACT hSrc);
+
+	bool     FindDestAccount(const char *szProto);
+	DBCachedContact* FindDestMeta(DBCachedContact *ccSrc);
+	MCONTACT FindExistingMeta(DBCachedContact *ccSrc);
+	PROTOACCOUNT* FindMyAccount(const char *szProto, const char *szBaseProto, const wchar_t *ptszName, bool bStrict);
+
+	MCONTACT HContactFromID(const char *pszProtoName, const char *pszSetting, wchar_t *pwszID);
+	MCONTACT HContactFromChatID(const char *pszProtoName, const wchar_t *pszChatID);
+	MCONTACT HContactFromNumericID(const char *pszProtoName, const char *pszSetting, DWORD dwID);
+
+public:
+	CImportBatch();
+
+	__forceinline const OBJLIST<AccountMap> &AccountsMap() const { return m_accounts; }
+
+	void CopySettings(MCONTACT srcID, const char *szSrcModule, MCONTACT dstID, const char *szDstModule);
+	void DoImport();
+
+	int myGet(MCONTACT hContact, const char *szModule, const char *szSetting, DBVARIANT *dbv);
+	int myGetD(MCONTACT hContact, const char *szModule, const char *szSetting, int iDefault);
+	BOOL myGetS(MCONTACT hContact, const char *szModule, const char *szSetting, char *dest);
+	wchar_t* myGetWs(MCONTACT hContact, const char *szModule, const char *szSetting);
+
+	wchar_t m_wszFileName[MAX_PATH];
+	time_t m_dwSinceDate;
+	int m_iOptions; // set of IOPT_* flags
+	bool m_bSendQuit;
+	MCONTACT m_hContact;
+	CImportPattern *m_pPattern;
+};
+
 bool IsDuplicateEvent(MCONTACT hContact, DBEVENTINFO dbei);
 
 int CreateGroup(const wchar_t *name, MCONTACT hContact);
 
-extern HWND g_hwndWizard, g_hwndAccMerge;
-extern wchar_t importFile[MAX_PATH];
-extern time_t dwSinceDate;
+uint32_t RLInteger(const uint8_t *p);
+uint32_t RLWord(const uint8_t *p);
+
 extern bool g_bServiceMode, g_bSendQuit;
-extern int g_iImportOptions;
-extern MCONTACT g_hImportContact;
+extern DATABASELINK g_patternDbLink;
+extern CImportBatch *g_pBatch;
+extern HWND g_hwndWizard, g_hwndAccMerge;
 
-void   RegisterIcons(void);
-
+void RegisterIcons(void);
 void RegisterMContacts();
 void RegisterJson();
 
-/////////////////////////////////////////////////////////////////////////////////////////
-
-class CContactImportDlg : public CDlgBase
-{
-	MCONTACT m_hContact;
-	int m_flags = 0;
-
-	CCtrlButton m_btnOpenFile, m_btnOk;
-	CCtrlEdit edtFileName;
-
-public:
-	CContactImportDlg(MCONTACT hContact);
-
-	int getFlags() const { return m_flags; }
-
-	bool OnInitDialog() override;
-	bool OnApply() override;
-
-	void onClick_Ok(CCtrlButton*);
-	void onClick_OpenFile(CCtrlButton*);
-};
+INT_PTR ImportContact(WPARAM hContact, LPARAM);
