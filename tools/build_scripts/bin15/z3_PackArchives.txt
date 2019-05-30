@@ -99,3 +99,4 @@ Plugins\MSN.dll
 Plugins\PluginUpdater.dll
 Plugins\TabSRMM.dll
 Plugins\TopToolBar.dll
+Plugins\Import\*.ini

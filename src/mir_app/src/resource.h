@@ -102,7 +102,7 @@
 #define IDI_UNICODE                     218
 #define IDI_ANSI                        219
 #define IDD_INFO_SUMMARY                220
-#define IDI_LOADED                      220
+#define IDI_PASSWORD                    220
 #define IDD_INFO_CONTACT                221
 #define IDR_CREDITS                     221
 #define IDI_NOTLOADED                   221

@@ -84,19 +84,6 @@ CIcqProto::CIcqProto(const char* aProtoName, const wchar_t* aUserName) :
 	nlu.szDescriptiveName.w = descr.GetBuffer();
 	m_hNetlibUser = Netlib_RegisterUser(&nlu);
 
-	m_hWorkerThread = ForkThreadEx(&CIcqProto::ServerThread, nullptr, nullptr);
-}
-
-CIcqProto::~CIcqProto()
-{
-	::CloseHandle(m_evRequestsQueue);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// OnModulesLoadedEx - performs hook registration
-
-void CIcqProto::OnModulesLoaded()
-{
 	// this was previously an old ICQ account
 	ptrW wszUin(GetUIN(0));
 	if (wszUin != nullptr) {
@@ -118,6 +105,19 @@ void CIcqProto::OnModulesLoaded()
 
 	InitContactCache();
 
+	m_hWorkerThread = ForkThreadEx(&CIcqProto::ServerThread, nullptr, nullptr);
+}
+
+CIcqProto::~CIcqProto()
+{
+	::CloseHandle(m_evRequestsQueue);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// OnModulesLoadedEx - performs hook registration
+
+void CIcqProto::OnModulesLoaded()
+{
 	GCREGISTER gcr = {};
 	gcr.dwFlags = GC_TYPNOTIF | GC_CHANMGR;
 	gcr.ptszDispName = m_tszUserName;
@@ -249,15 +249,15 @@ int CIcqProto::OnGroupChange(WPARAM hContact, LPARAM lParam)
 		auto *pReq = new AsyncHttpRequest(CONN_MAIN, REQUEST_GET, ICQ_API_SERVER "/buddylist/") << AIMSID(this);
 		if (pParam->pszOldName == nullptr) {
 			pReq->m_szUrl += "addGroup";
-			pReq << WCHAR_PARAM("group", pParam->pszNewName);
+			pReq << GROUP_PARAM("group", pParam->pszNewName);
 		}
 		else if (pParam->pszNewName == nullptr) {
 			pReq->m_szUrl += "removeGroup";
-			pReq << WCHAR_PARAM("group", pParam->pszOldName);
+			pReq << GROUP_PARAM("group", pParam->pszOldName);
 		}
 		else {
 			pReq->m_szUrl += "renameGroup";
-			pReq << WCHAR_PARAM("oldGroup", pParam->pszOldName) << WCHAR_PARAM("newGroup", pParam->pszNewName);
+			pReq << GROUP_PARAM("oldGroup", pParam->pszOldName) << GROUP_PARAM("newGroup", pParam->pszNewName);
 		}
 		Push(pReq);
 	}

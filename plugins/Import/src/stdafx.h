@@ -45,6 +45,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_metacontacts.h>
 #include <m_netlib.h>
 #include <m_protosvc.h>
+#include <m_timezones.h>
 
 #include "../../../libs/Pcre16/src/pcre.h"
 
@@ -81,6 +82,9 @@ struct CImportPattern : public MZeroedObject
 
 	CRegexp regFilename;
 	int iInNick, iInUID, iOutNick, iOutUID;
+
+	CRegexp regHeader;
+	int iHdrIncoming, iHdrOutgoing, iHdrInNick, iHdrOutNick, iHdrInUID, iHdrOutUID;
 
 	// symbols pre & after a messages
 	int preRN, afterRN, preSP, afterSP;
