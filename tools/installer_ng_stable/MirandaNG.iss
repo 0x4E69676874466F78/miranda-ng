@@ -17,7 +17,7 @@ AppVersion={#AppVer}
 AppName=Miranda NG
 AppVerName=Miranda NG {#SetupSetting("AppVersion")}
 AppPublisher=Miranda NG team
-AppCopyRight=2018 © Miranda NG team
+AppCopyRight=2019 © Miranda NG team
 VersionInfoVersion={#SetupSetting("AppVersion")}
 MinVersion=5.0
 ArchitecturesAllowed={#ArcAllow}
@@ -99,6 +99,7 @@ Source: "Files\Languages\langpack_russian.txt"; DestDir: "{app}\Languages"; Comp
 Source: "Files\Plugins\AVS.dll"; DestDir: "{app}\Plugins"; Components: program; Flags: ignoreversion; AfterInstall: ShowPercent() 
 Source: "Files\Plugins\CrashDumper.dll"; DestDir: "{app}\Plugins"; Components: program; Flags: ignoreversion; AfterInstall: ShowPercent() 
 Source: "Files\Plugins\Import.dll"; DestDir: "{app}\Plugins"; Components: program; Flags: ignoreversion; AfterInstall: ShowPercent() 
+Source: "Files\Plugins\Import\*"; DestDir: "{app}\Plugins\Import"; Components: program; Flags: ignoreversion; AfterInstall: ShowPercent() 
 Source: "Files\Plugins\PluginUpdater.dll"; DestDir: "{app}\Plugins"; Components: program; Flags: ignoreversion; AfterInstall: ShowPercent() 
 Source: "Files\pu_stub.exe"; DestDir: "{app}"; Components: program; Flags: ignoreversion; AfterInstall: ShowPercent() 
 
@@ -125,6 +126,9 @@ Source: "Files\Plugins\Scriver.dll"; DestDir: "{app}\Plugins"; Components: messa
 
 ; DB drivers
 Source: "Files\Plugins\Dbx_mdbx.dll"; DestDir: "{app}\Plugins"; Components: dbx_mdbx; Flags: ignoreversion; AfterInstall: ShowPercent() 
+Source: "Files\fixme.cmd"; DestDir: "{app}"; Components: dbx_mdbx; Flags: ignoreversion; AfterInstall: ShowPercent() 
+Source: "Files\mdbx_dump.exe"; DestDir: "{app}"; Components: dbx_mdbx; Flags: ignoreversion; AfterInstall: ShowPercent() 
+Source: "Files\mdbx_load.exe"; DestDir: "{app}"; Components: dbx_mdbx; Flags: ignoreversion; AfterInstall: ShowPercent() 
 
 ; Config files
 Source: "Files\Settings\mirandaboot_default.ini"; DestDir: "{app}"; Components: program; DestName: "mirandaboot.ini"; Check: IsDefault(); Flags: ignoreversion onlyifdoesntexist; AfterInstall: ShowPercent() 
