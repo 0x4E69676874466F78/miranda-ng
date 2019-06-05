@@ -47,8 +47,8 @@ mkdir InnoNG_%tp%
 mkdir InnoNG_%tp%\Files\Languages
 copy /V /Y MirandaNG.iss InnoNG_%tp%
 xcopy Common\* InnoNG_%tp% /I /S /V /Y
-Tools\wget.exe -O tmp\InnoSetup5.7z https://miranda-ng.org/distr/installer/InnoSetup5.7z
-Tools\wget.exe -O tmp\MNG_Sounds.7z https://miranda-ng.org/distr/addons/Sounds/MNG_Sounds.7z
+Tools\wget.exe --no-check-certificate -O tmp\InnoSetup5.7z https://miranda-ng.org/distr/installer/InnoSetup5.7z
+Tools\wget.exe --no-check-certificate -O tmp\MNG_Sounds.7z https://miranda-ng.org/distr/addons/Sounds/MNG_Sounds.7z
 %CompressIt% x tmp\InnoSetup5.7z -y -oTools
 %CompressIt% x %ArchDistr%\miranda-ng-v%MirVer%%bit%.7z -y -oInnoNG_%tp%\Files
 %CompressIt% x tmp\MNG_Sounds.7z -y -oInnoNG_%tp%\Files
