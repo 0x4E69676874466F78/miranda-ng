@@ -1,17 +1,8 @@
-#define _CRT_SECURE_NO_WARNINGS
 
-#define WIN32_LEAN_AND_MEAN 
-#include <windows.h>
+#include "stdafx.h"
 
-// C RunTime Header Files
-#include <stdlib.h>
-#include <malloc.h>
-#include <memory.h>
-#include <varargs.h>
-#include <stdio.h>
-
-// Global Variables:
-HINSTANCE hInst;								// current instance
+#include "..\..\build\appstub\appstub.cpp"
+#pragma comment(lib, "delayimp.lib")
 
 void log(const wchar_t *tszFormat, ...)
 {
@@ -58,10 +49,9 @@ void CreatePathToFileW(wchar_t *wszFilePath)
 	*pszLastBackslash = '\\';
 }
 
-int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPTSTR lpCmdLine, int)
+int APIENTRY wWinMain(HINSTANCE /*hInstance*/, HINSTANCE, LPTSTR lpCmdLine, int)
 {
 	DWORD dwError;
-	hInst = hInstance;
 
 	wchar_t tszPipeName[MAX_PATH];
 	#if _MSC_VER < 1400
